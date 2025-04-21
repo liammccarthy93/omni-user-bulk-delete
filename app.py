@@ -17,7 +17,7 @@ st.set_page_config(
 # Title and description
 st.title("Omni User Bulk Delete Tool")
 st.markdown("""
-This tool allows you to bulk delete embed users from your Omni instance.
+This tool allows you to bulk delete users from your Omni instance.
 Please provide your API token and upload a CSV file containing user IDs.
 """)
 
@@ -26,6 +26,11 @@ with st.sidebar:
     st.header("Configuration")
     api_token = st.text_input("API Token", type="password", help="Enter your Omni API token")
     org_domain = st.text_input("Organization Domain", help="Enter your Omni organization domain (e.g., myorg.omniapp.co)")
+    is_embed_user = st.checkbox("Delete Embed Users", value=True, help="Check to use the embed users endpoint, uncheck for regular users")
+    
+    # Display which endpoint will be used
+    endpoint_type = "embed" if is_embed_user else "regular"
+    st.info(f"Using {endpoint_type} users endpoint")
 
 # Main content
 uploaded_file = st.file_uploader("Upload CSV file with user IDs", type="csv")
@@ -53,6 +58,9 @@ if uploaded_file is not None:
                     success_count = 0
                     failed_users = []
                     
+                    # Determine the endpoint based on the checkbox
+                    endpoint_path = "embed/users" if is_embed_user else "users"
+                    
                     for index, row in df.iterrows():
                         user_id = str(row[required_column]).strip()
                         status_text.text(f"Processing user ID: {user_id}")
@@ -60,7 +68,7 @@ if uploaded_file is not None:
                         try:
                             # Make DELETE request to Omni API
                             response = requests.delete(
-                                f"https://{org_domain}/api/scim/v2/embed/users/{user_id}",
+                                f"https://{org_domain}/api/scim/v2/{endpoint_path}/{user_id}",
                                 headers={
                                     "Content-Type": "application/json",
                                     "Authorization": f"Bearer {api_token}"
@@ -110,10 +118,11 @@ with st.expander("Usage Instructions"):
     
     1. Enter your Omni API token in the sidebar
     2. Enter your organization domain (e.g., myorg.omniapp.co)
-    3. Prepare a CSV file with a column named 'user_id' containing the IDs of users to delete
-    4. Upload the CSV file
-    5. Review the preview of the data
-    6. Click 'Start Deletion Process' to begin
+    3. Choose whether to delete embed users or regular users using the checkbox
+    4. Prepare a CSV file with a column named 'user_id' containing the IDs of users to delete
+    5. Upload the CSV file
+    6. Review the preview of the data
+    7. Click 'Start Deletion Process' to begin
     
     ### CSV Format:
     Your CSV file should have a column named 'user_id' containing the Omni user IDs to be deleted.
@@ -129,4 +138,5 @@ with st.expander("Usage Instructions"):
     - This operation is irreversible
     - Make sure you have the correct permissions
     - The tool will provide a report of any failed deletions
+    - Different endpoints are used for embed users vs regular users
     """) 
